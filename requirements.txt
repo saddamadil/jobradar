@@ -1,0 +1,6 @@
+flask
+flask-cors
+requests
+schedule
+gunicorn
+psycopg2-binary
