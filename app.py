@@ -418,6 +418,49 @@ def start_scheduler():
         schedule.run_pending()
         time.sleep(60)
 
+
+@app.route("/api/test-insert")
+def test_insert():
+    conn = get_db()
+    if not conn:
+        return jsonify({"error": "no db connection"})
+    results = {}
+    try:
+        cur = conn.cursor()
+        # Create table fresh
+        cur.execute("DROP TABLE IF EXISTS jobs")
+        cur.execute("""CREATE TABLE jobs (
+            id TEXT PRIMARY KEY,
+            title TEXT, company TEXT, location TEXT,
+            platform TEXT, salary TEXT, match_score INTEGER,
+            url TEXT, posted TEXT, status TEXT DEFAULT 'Pending',
+            hot BOOLEAN DEFAULT FALSE, hr_url TEXT, description TEXT,
+            created_at TIMESTAMP DEFAULT NOW())""")
+        conn.commit()
+        results["table_created"] = True
+
+        # Test insert
+        cur.execute("""INSERT INTO jobs
+            (id, title, company, location, platform, salary, match_score, url, posted, status, hot, hr_url, description)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            ("test-1", "SEO Manager", "Test GmbH", "Berlin", "Adzuna DE",
+             "EUR 50,000", 90, "https://example.com", "2026-03-11",
+             "Pending", False, "", "Test description"))
+        conn.commit()
+        results["test_insert"] = "success"
+
+        # Verify
+        cur.execute("SELECT COUNT(*) FROM jobs")
+        results["count"] = cur.fetchone()[0]
+
+        cur.close()
+        conn.close()
+    except Exception as e:
+        results["error"] = str(e)
+        import traceback
+        results["traceback"] = traceback.format_exc()
+    return jsonify(results)
+
 @app.route("/api/debug")
 def debug():
     results = {"db_url_set": bool(DATABASE_URL), "has_psycopg2": HAS_PG}
