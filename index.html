@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JobRadar — Saddam's AI-Powered Job Search</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #05080f;
+  --bg2:       #090d18;
+  --panel:     #0d1526;
+  --panel2:    #111d35;
+  --border:    rgba(99,179,255,0.12);
+  --blue:      #3b82f6;
+  --blue-glow: rgba(59,130,246,0.25);
+  --cyan:      #06b6d4;
+  --green:     #10b981;
+  --yellow:    #f59e0b;
+  --red:       #ef4444;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --accent:    #60a5fa;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── BACKGROUND MESH ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(59,130,246,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6,182,212,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(16,185,129,0.03) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(5,8,15,0.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:16px 0;
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{
+  font-family:'Syne',sans-serif;
+  font-weight:800;font-size:20px;
+  color:#fff;display:flex;align-items:center;gap:10px;
+  text-decoration:none;
+}
+.logo-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--blue);
+  box-shadow:0 0 12px var(--blue);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.nav-links{display:flex;gap:8px}
+.nav-link{
+  padding:8px 16px;border-radius:8px;
+  color:var(--muted);font-size:13px;font-weight:500;
+  text-decoration:none;transition:all .2s;border:1px solid transparent;
+  cursor:pointer;background:none;
+}
+.nav-link:hover,.nav-link.active{color:var(--accent);border-color:var(--border);background:var(--panel)}
+.nav-badge{
+  background:var(--blue);color:#fff;
+  font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:20px;margin-left:6px;
+}
+
+/* ── HERO ── */
+.hero{padding:64px 0 48px;text-align:center}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);
+  color:var(--accent);padding:6px 16px;border-radius:20px;
+  font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  margin-bottom:24px;
+}
+.hero h1{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(36px,6vw,64px);
+  font-weight:800;line-height:1.1;
+  color:#fff;margin-bottom:20px;
+}
+.hero h1 span{
+  background:linear-gradient(90deg,var(--blue),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero p{color:var(--muted);font-size:17px;max-width:560px;margin:0 auto 36px;line-height:1.7}
+.hero-stats{
+  display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:40px;
+}
+.stat{text-align:center}
+.stat-val{
+  font-family:'Syne',sans-serif;font-size:32px;font-weight:800;
+  background:linear-gradient(135deg,#fff,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.stat-label{color:var(--muted);font-size:12px;margin-top:2px}
+.hero-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.btn{
+  padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;
+  cursor:pointer;border:none;text-decoration:none;transition:all .2s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--blue),#2563eb);
+  color:#fff;box-shadow:0 4px 20px rgba(59,130,246,0.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(59,130,246,0.4)}
+.btn-secondary{
+  background:var(--panel);color:var(--text);
+  border:1px solid var(--border);
+}
+.btn-secondary:hover{border-color:var(--blue);color:var(--accent)}
+
+/* ── FILTERS ── */
+.filters{
+  display:flex;gap:10px;flex-wrap:wrap;
+  align-items:center;margin-bottom:24px;
+}
+.search-wrap{position:relative;flex:1;min-width:220px}
+.search-wrap input{
+  width:100%;padding:11px 16px 11px 42px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:14px;
+  font-family:'DM Sans',sans-serif;outline:none;transition:border .2s;
+}
+.search-wrap input:focus{border-color:var(--blue)}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
+.filter-btn{
+  padding:11px 16px;border-radius:10px;
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--muted);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.filter-btn:hover,.filter-btn.on{border-color:var(--blue);color:var(--accent);background:rgba(59,130,246,0.08)}
+.results-count{
+  color:var(--muted);font-size:13px;
+  padding:11px 16px;background:var(--panel);
+  border:1px solid var(--border);border-radius:10px;white-space:nowrap;
+}
+
+/* ── GRID ── */
+.jobs-grid{display:flex;flex-direction:column;gap:12px}
+
+/* ── JOB CARD ── */
+.job-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;padding:20px 24px;
+  transition:all .25s;cursor:default;
+  animation:fadeUp .4s ease both;
+  position:relative;overflow:hidden;
+}
+.job-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--blue),var(--cyan));
+  opacity:0;transition:opacity .2s;
+}
+.job-card:hover{border-color:rgba(99,179,255,0.25);background:var(--panel2);transform:translateX(2px)}
+.job-card:hover::before{opacity:1}
+.job-card.applied{border-color:rgba(16,185,129,0.25);background:rgba(16,185,129,0.04)}
+.job-card.applied::before{background:var(--green);opacity:1}
+.job-card.hot{border-color:rgba(245,158,11,0.2)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.card-top{display:flex;gap:16px;align-items:flex-start}
+.match-ring{
+  flex-shrink:0;width:52px;height:52px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:2.5px solid var(--blue);position:relative;
+}
+.match-ring.high{border-color:var(--green)}
+.match-ring.mid{border-color:var(--yellow)}
+.match-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;line-height:1;color:#fff}
+.match-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+
+.card-info{flex:1;min-width:0}
+.card-title{
+  font-family:'Syne',sans-serif;font-size:16px;font-weight:700;
+  color:#fff;margin-bottom:5px;line-height:1.3;
+}
+.card-meta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.card-company{color:var(--accent);font-size:13px;font-weight:500}
+.card-loc{color:var(--muted);font-size:12px}
+.card-salary{color:var(--green);font-size:12px;font-weight:600}
+.card-posted{color:var(--muted);font-size:11px}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{
+  font-size:11px;padding:3px 10px;border-radius:20px;
+  background:rgba(255,255,255,0.05);color:var(--muted);
+  border:1px solid rgba(255,255,255,0.08);
+}
+.tag.featured{background:rgba(59,130,246,0.1);color:var(--accent);border-color:rgba(59,130,246,0.2)}
+
+.hot-badge{
+  position:absolute;top:14px;right:16px;
+  background:linear-gradient(90deg,#f59e0b,#ef4444);
+  color:#fff;font-size:10px;font-weight:700;
+  padding:3px 10px;border-radius:20px;letter-spacing:.05em;
+}
+.applied-badge{
+  position:absolute;top:14px;right:16px;
+  background:rgba(16,185,129,0.15);color:var(--green);
+  font-size:10px;font-weight:700;padding:3px 12px;
+  border-radius:20px;border:1px solid rgba(16,185,129,0.3);
+}
+
+.card-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0;min-width:130px}
+.btn-apply{
+  padding:10px 0;border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),#2563eb);
+  color:#fff;font-size:12px;font-weight:700;
+  text-align:center;text-decoration:none;border:none;cursor:pointer;
+  transition:all .2s;box-shadow:0 2px 12px rgba(59,130,246,0.3);
+  display:block;
+}
+.btn-apply:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(59,130,246,0.45)}
+.btn-hr{
+  padding:9px 0;border-radius:9px;
+  background:transparent;border:1px solid var(--border);
+  color:var(--accent);font-size:12px;font-weight:600;
+  text-align:center;text-decoration:none;cursor:pointer;transition:all .2s;
+  display:block;
+}
+.btn-hr:hover{border-color:var(--blue);background:rgba(59,130,246,0.08)}
+.btn-row{display:flex;gap:6px}
+.btn-mark{
+  flex:1;padding:8px 0;border-radius:8px;border:none;
+  cursor:pointer;font-size:11px;font-weight:700;transition:all .2s;
+}
+.btn-mark.pending{background:rgba(255,255,255,0.05);color:var(--muted)}
+.btn-mark.done{background:rgba(16,185,129,0.15);color:var(--green)}
+.btn-save{
+  padding:8px 10px;border-radius:8px;border:none;
+  background:rgba(255,255,255,0.05);cursor:pointer;
+  font-size:14px;transition:all .2s;color:var(--muted);
+}
+.btn-save.saved{background:rgba(245,158,11,0.15);color:var(--yellow)}
+
+/* ── SECTION HEADER ── */
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.section-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff}
+.section-sub{color:var(--muted);font-size:13px;margin-top:3px}
+.live-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 8px var(--green);
+  margin-right:6px;animation:pulse 1.5s infinite;
+}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--panel);padding:4px;border-radius:12px;margin-bottom:28px;flex-wrap:wrap}
+.tab{
+  flex:1;min-width:120px;padding:10px 16px;border-radius:9px;border:none;
+  cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;
+  background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;
+}
+.tab.active{background:var(--panel2);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+
+/* ── HR CARDS ── */
+.hr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.hr-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  padding:18px 20px;transition:all .2s;
+}
+.hr-card:hover{border-color:rgba(99,179,255,0.25)}
+.hr-company{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.hr-loc{color:var(--muted);font-size:12px;margin-bottom:14px}
+.btn-find-hr{
+  display:block;width:100%;padding:9px 0;border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),#2563eb);
+  color:#fff;font-size:12px;font-weight:700;
+  text-align:center;text-decoration:none;
+  box-shadow:0 2px 10px rgba(59,130,246,0.25);
+  transition:all .2s;
+}
+.btn-find-hr:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(59,130,246,0.4)}
+
+/* ── MESSAGE TEMPLATE ── */
+.msg-box{
+  background:var(--panel);border:1px solid rgba(245,158,11,0.2);
+  border-radius:14px;padding:22px 24px;margin-top:24px;
+}
+.msg-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--yellow);margin-bottom:14px}
+.msg-text{
+  background:rgba(0,0,0,0.3);border-radius:10px;padding:16px 18px;
+  font-size:13px;color:#94a3b8;line-height:1.8;font-family:monospace;
+  white-space:pre-wrap;
+}
+.copy-btn{
+  margin-top:12px;padding:9px 20px;border-radius:8px;
+  background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);
+  color:var(--yellow);font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;
+}
+.copy-btn:hover{background:rgba(245,158,11,0.18)}
+
+/* ── QUICK LINKS ── */
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.link-card{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;text-decoration:none;transition:all .2s;
+  color:var(--text);
+}
+.link-card:hover{border-color:var(--blue);background:var(--panel2)}
+.link-name{font-weight:600;font-size:14px}
+.link-region{font-size:11px;color:var(--muted);margin-top:2px}
+.link-arrow{color:var(--accent);font-size:13px}
+
+/* ── PROGRESS BAR ── */
+.progress-section{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:24px;margin-bottom:28px;
+}
+.progress-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;color:#fff}
+.progress-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.progress-item{text-align:center}
+.progress-ring-wrap{position:relative;width:70px;height:70px;margin:0 auto 10px}
+.progress-ring-wrap svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(255,255,255,0.06);stroke-width:5}
+.ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.ring-val{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;
+}
+.prog-label{font-size:12px;color:var(--muted)}
+.prog-num{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:999;
+  background:var(--green);color:#fff;padding:12px 20px;
+  border-radius:10px;font-size:13px;font-weight:600;
+  box-shadow:0 8px 30px rgba(16,185,129,0.4);
+  transform:translateY(80px);opacity:0;transition:all .3s;
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);margin-top:60px;
+  padding:28px 0;text-align:center;color:var(--muted);font-size:13px;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  .card-top{flex-direction:column}
+  .card-actions{flex-direction:row;min-width:auto;width:100%}
+  .btn-apply,.btn-hr{flex:1}
+  .card-actions{flex-wrap:wrap}
+  .hero h1{font-size:32px}
+  .nav-links{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-dot"></div>
+      JobRadar
+    </a>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showTab('jobs')">Jobs <span class="nav-badge" id="nb-jobs">10</span></button>
+      <button class="nav-link" onclick="showTab('hr')">HR Finder</button>
+      <button class="nav-link" onclick="showTab('links')">Job Boards</button>
+      <button class="nav-link" onclick="showTab('progress')">My Progress</button>
+    </div>
+    <a href="dashboard.html" class="btn btn-secondary" style="font-size:13px;padding:8px 16px">⚙ Dashboard</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-tag"><span class="live-dot"></span>Auto-updated daily · Powered by Adzuna API</div>
+    <h1>Your Daily <span>Job Radar</span><br/>— Germany & Remote</h1>
+    <p>AI-matched jobs for Performance Marketing, SEO & Growth roles. Updated every morning at 9 AM.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-val" id="stat-total">10</div><div class="stat-label">Jobs Today</div></div>
+      <div class="stat"><div class="stat-val" id="stat-applied">0</div><div class="stat-label">Applied</div></div>
+      <div class="stat"><div class="stat-val" id="stat-interviews">0</div><div class="stat-label">Interviews</div></div>
+      <div class="stat"><div class="stat-val" id="stat-rate">0%</div><div class="stat-label">Response Rate</div></div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="showTab('jobs')">🎯 View Today's Jobs</button>
+      <a href="dashboard.html" class="btn btn-secondary">⚙ Admin Dashboard</a>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main class="wrap">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" id="tab-jobs" onclick="showTab('jobs')">🎯 Today's Jobs</button>
+    <button class="tab" id="tab-hr" onclick="showTab('hr')">👤 HR Finder</button>
+    <button class="tab" id="tab-links" onclick="showTab('links')">🔗 Job Boards</button>
+    <button class="tab" id="tab-progress" onclick="showTab('progress')">📈 My Progress</button>
+  </div>
+
+  <!-- JOBS TAB -->
+  <div id="pane-jobs">
+    <div class="section-hd">
+      <div>
+        <div class="section-title"><span class="live-dot"></span>Today's Matched Jobs</div>
+        <div class="section-sub" id="last-updated">Last updated: Loading...</div>
+      </div>
+      <button class="btn btn-secondary" style="font-size:13px" onclick="refreshJobs()">↻ Refresh</button>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input id="search-input" type="text" placeholder="Search title, company, skill..." oninput="filterJobs()"/>
+      </div>
+      <button class="filter-btn" id="f-remote" onclick="toggleFilter('remote')">🌍 Remote</button>
+      <button class="filter-btn" id="f-germany" onclick="toggleFilter('germany')">🇩🇪 Germany</button>
+      <button class="filter-btn" id="f-saved" onclick="toggleFilter('saved')">🔖 Saved</button>
+      <div class="results-count" id="results-count">10 jobs</div>
+    </div>
+
+    <div class="jobs-grid" id="jobs-grid"></div>
+  </div>
+
+  <!-- HR TAB -->
+  <div id="pane-hr" style="display:none">
+    <div class="section-hd">
+      <div>
+        <div class="section-title">👤 Find HR Profiles on LinkedIn</div>
+        <div class="section-sub">Connect with recruiters after applying — doubles your callback rate</div>
+      </div>
+    </div>
+    <div class="hr-grid" id="hr-grid"></div>
+    <div class="msg-box">
+      <div class="msg-title">📝 LinkedIn Message Template</div>
+      <div class="msg-text" id="msg-template">Hi [HR Name] 👋
+
+I recently applied for the [Job Title] role at [Company]. I bring 6+ years in performance marketing — delivering 120% organic traffic growth, 35% lead gen increase, and consistent ROAS across B2B, SaaS & FMCG.
+
+I also build AI-augmented marketing workflows using Python & LangChain that reduce manual work by ~40%.
+
+Would love to connect — portfolio at www.saddamadil.in
+
+Best,
+Saddam Adil</div>
+      <button class="copy-btn" onclick="copyMsg()">📋 Copy Message</button>
+    </div>
+  </div>
+
+  <!-- LINKS TAB -->
+  <div id="pane-links" style="display:none">
+    <div class="section-hd">
+      <div>
+        <div class="section-title">🔗 Quick Job Board Links</div>
+        <div class="section-sub">Click to open pre-searched results on each platform</div>
+      </div>
+    </div>
+    <div class="links-grid" id="links-grid"></div>
+  </div>
+
+  <!-- PROGRESS TAB -->
+  <div id="pane-progress" style="display:none">
+    <div class="progress-section">
+      <div class="progress-title">📈 Application Progress</div>
+      <div class="progress-row" id="progress-row"></div>
+    </div>
+    <div class="section-title" style="margin-bottom:16px">📋 Application History</div>
+    <div class="jobs-grid" id="history-grid"></div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    JobRadar · Built for Saddam Adil · <a href="https://www.saddamadil.in" style="color:var(--accent)" target="_blank">saddamadil.in</a> · Auto-updates daily at 9:00 AM
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let jobs = [], saved = {}, applied = {}, filters = {remote:false,germany:false,saved:false};
+
+const JOBS_DATA = [
+  {id:1,title:"Senior Performance Marketing Manager",company:"Zalando SE",location:"Berlin, Germany",type:"Full-time · On-site",match:98,salary:"€55k–€75k",tags:["Google Ads","Meta Ads","ROAS","GA4"],url:"https://www.linkedin.com/jobs/performance-marketing-manager-jobs-berlin-be",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=HR+Recruiter+Zalando",platform:"LinkedIn",posted:"Today",hot:true},
+  {id:2,title:"SEO & Growth Manager (International)",company:"Delivery Hero",location:"Berlin, Germany",type:"Full-time · Hybrid",match:96,salary:"€50k–€70k",tags:["Technical SEO","GEO","Ahrefs"],url:"https://www.linkedin.com/jobs/search-engine-optimization-manager-jobs-berlin",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Talent+Acquisition+Delivery+Hero",platform:"LinkedIn",posted:"Today",hot:true},
+  {id:3,title:"Performance Marketing Specialist",company:"Remote.com",location:"Worldwide · Remote",type:"Full-time · Remote",match:95,salary:"$45k–$65k",tags:["Google Ads","SEO","Python"],url:"https://www.linkedin.com/jobs/performance-marketing-manager-jobs-worldwide",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Recruiter+Remote.com",platform:"LinkedIn",posted:"Today",hot:true},
+  {id:4,title:"Digital Marketing Manager – B2B SaaS",company:"HubSpot",location:"Dublin · Remote eligible",type:"Full-time · Remote",match:93,salary:"€60k–€80k",tags:["HubSpot","SEO","Lead Gen","B2B"],url:"https://www.linkedin.com/jobs/digital-marketing-manager-jobs-ireland",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Recruiter+HubSpot+Dublin",platform:"LinkedIn",posted:"2 days ago",hot:false},
+  {id:5,title:"SEO Manager (All Genders)",company:"Axel Springer",location:"Berlin, Germany",type:"Full-time · Hybrid",match:92,salary:"€45k–€62k",tags:["Technical SEO","Core Web Vitals","SEMrush"],url:"https://www.linkedin.com/jobs/seo-manager-jobs-berlin",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=HR+Axel+Springer+Berlin",platform:"LinkedIn",posted:"Today",hot:false},
+  {id:6,title:"AI Marketing Specialist – Growth",company:"N26 Bank",location:"Berlin, Germany",type:"Full-time · Hybrid",match:91,salary:"€55k–€72k",tags:["AI Tools","Python","Meta Ads"],url:"https://www.linkedin.com/jobs/digital-marketing-manager-jobs-berlin",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Talent+Recruiter+N26+Berlin",platform:"LinkedIn",posted:"3 days ago",hot:false},
+  {id:7,title:"Performance Marketing Manager – FMCG",company:"HelloFresh",location:"Berlin, Germany",type:"Full-time · On-site",match:90,salary:"€52k–€68k",tags:["Meta Ads","FMCG","CPA"],url:"https://www.linkedin.com/jobs/performance-marketing-m-w-d-jobs-berlin-be",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Recruiter+HelloFresh+Berlin",platform:"LinkedIn",posted:"2 days ago",hot:false},
+  {id:8,title:"Senior SEO Strategist (Remote)",company:"Shopify",location:"Worldwide · Remote",type:"Full-time · Remote",match:89,salary:"$55k–$80k",tags:["Shopify","Technical SEO","E-commerce"],url:"https://www.linkedin.com/jobs/seo-specialist-jobs-worldwide",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Talent+Recruiter+Shopify",platform:"LinkedIn",posted:"Today",hot:true},
+  {id:9,title:"Digital Marketing & SEO Specialist",company:"Siemens AG",location:"Munich, Germany",type:"Full-time · Hybrid",match:88,salary:"€50k–€67k",tags:["B2B","Google Ads","Looker Studio"],url:"https://www.linkedin.com/jobs/search-engine-optimization-specialist-jobs-munich",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=HR+Recruiter+Siemens+Munich",platform:"LinkedIn",posted:"4 days ago",hot:false},
+  {id:10,title:"Growth & Performance Marketing Lead",company:"Wolt (DoorDash)",location:"Helsinki · Remote eligible",type:"Full-time · Remote",match:87,salary:"€55k–€75k",tags:["Growth","Google Ads","ROAS"],url:"https://www.linkedin.com/jobs/performance-marketing-manager-jobs-worldwide",hrUrl:"https://www.linkedin.com/search/results/people/?keywords=Talent+Acquisition+Wolt",platform:"LinkedIn",posted:"Today",hot:true},
+];
+
+const LINKS_DATA = [
+  {name:"LinkedIn Jobs",region:"🌍 Global",url:"https://www.linkedin.com/jobs/performance-marketing-manager-jobs-worldwide"},
+  {name:"Indeed Global",region:"🌍 Remote",url:"https://www.indeed.com/jobs?q=performance+marketing+specialist&l=remote"},
+  {name:"StepStone DE",region:"🇩🇪 Germany",url:"https://www.stepstone.de/jobs/Performance-Marketing-Manager/in-Deutschland.html"},
+  {name:"XING Jobs",region:"🇩🇪 Germany",url:"https://www.xing.com/jobs/search?keywords=seo+manager&location=berlin"},
+  {name:"Indeed Germany",region:"🇩🇪 Germany",url:"https://de.indeed.com/jobs?q=digital+marketing+specialist&l=Deutschland"},
+  {name:"Glassdoor",region:"🌍 Global",url:"https://www.glassdoor.com/Job/digital-marketing-manager-jobs-SRCH_KO0,25.htm"},
+  {name:"WeWorkRemotely",region:"🌍 Remote",url:"https://weworkremotely.com/categories/remote-marketing-jobs"},
+  {name:"Otta (Europe)",region:"🇪🇺 Europe",url:"https://app.otta.com/jobs/marketing"},
+  {name:"YC Jobs Board",region:"🌍 Startups",url:"https://www.ycombinator.com/jobs/role/marketing"},
+  {name:"Arbeitsagentur",region:"🇩🇪 Germany",url:"https://www.arbeitsagentur.de/jobsuche/suche?was=marketing+manager&wo=Deutschland"},
+];
+
+// ── INIT ──
+function init(){
+  jobs = [...JOBS_DATA];
+  loadStorage();
+  renderJobs(jobs);
+  renderHR();
+  renderLinks();
+  renderProgress();
+  document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleString();
+  document.getElementById('stat-total').textContent = jobs.length;
+  updateStats();
+}
+
+function loadStorage(){
+  try{
+    const s = sessionStorage.getItem('jr_saved');
+    const a = sessionStorage.getItem('jr_applied');
+    if(s) saved = JSON.parse(s);
+    if(a) applied = JSON.parse(a);
+  }catch(e){}
+}
+function saveStorage(){
+  try{
+    sessionStorage.setItem('jr_saved', JSON.stringify(saved));
+    sessionStorage.setItem('jr_applied', JSON.stringify(applied));
+  }catch(e){}
+}
+
+// ── TABS ──
+function showTab(t){
+  ['jobs','hr','links','progress'].forEach(p=>{
+    document.getElementById('pane-'+p).style.display = p===t?'block':'none';
+    document.getElementById('tab-'+p).classList.toggle('active', p===t);
+  });
+}
+
+// ── RENDER JOBS ──
+function renderJobs(list){
+  const g = document.getElementById('jobs-grid');
+  document.getElementById('results-count').textContent = list.length+' jobs';
+  if(!list.length){g.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted)">No jobs match your filters</div>';return;}
+  g.innerHTML = list.map((j,i)=>jobCard(j,i)).join('');
+}
+
+function jobCard(j, i){
+  const mc = j.match>=90?'high':j.match>=80?'mid':'';
+  const isApplied = !!applied[j.id];
+  const isSaved = !!saved[j.id];
+  const delay = i*0.04;
+  const circumference = 2*Math.PI*22;
+  const dashOffset = circumference*(1-j.match/100);
+  const ringColor = j.match>=90?'#10b981':j.match>=80?'#f59e0b':'#3b82f6';
+  return `<div class="job-card${isApplied?' applied':''}${j.hot&&!isApplied?' hot':''}" style="animation-delay:${delay}s">
+    ${isApplied?'<div class="applied-badge">✅ Applied</div>':j.hot?'<div class="hot-badge">🔥 Hot</div>':''}
+    <div class="card-top">
+      <div class="match-ring ${mc}">
+        <svg width="52" height="52" style="position:absolute;inset:0">
+          <circle class="ring-bg" cx="26" cy="26" r="22"/>
+          <circle class="ring-fill" cx="26" cy="26" r="22" stroke="${ringColor}"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"/>
+        </svg>
+        <div class="match-val">${j.match}</div>
+      </div>
+      <div class="card-info">
+        <div class="card-title">${j.title}</div>
+        <div class="card-meta">
+          <span class="card-company">🏢 ${j.company}</span>
+          <span class="card-loc">📍 ${j.location}</span>
+          ${j.salary?`<span class="card-salary">💰 ${j.salary}</span>`:''}
+          <span class="card-posted">⏰ ${j.posted}</span>
+        </div>
+        <div class="card-tags">
+          <span class="tag featured">${j.type}</span>
+          ${j.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
+        </div>
+      </div>
+      <div class="card-actions">
+        <a href="${j.url}" target="_blank" class="btn-apply">🚀 Apply Now</a>
+        <a href="${j.hrUrl}" target="_blank" class="btn-hr">👤 Find HR</a>
+        <div class="btn-row">
+          <button class="btn-mark ${isApplied?'done':'pending'}" onclick="toggleApplied(${j.id})">${isApplied?'✅ Applied':'Mark Applied'}</button>
+          <button class="btn-save ${isSaved?'saved':''}" onclick="toggleSaved(${j.id})">${isSaved?'🔖':'☆'}</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ACTIONS ──
+function toggleApplied(id){
+  applied[id] = !applied[id];
+  saveStorage(); updateStats(); filterJobs();
+  showToast(applied[id]?'✅ Marked as Applied!':'↩ Removed from Applied');
+}
+function toggleSaved(id){
+  saved[id]=!saved[id];
+  saveStorage(); filterJobs();
+  showToast(saved[id]?'🔖 Job Saved!':'Removed from Saved');
+}
+function toggleFilter(f){
+  filters[f]=!filters[f];
+  document.getElementById('f-'+f).classList.toggle('on',filters[f]);
+  filterJobs();
+}
+function filterJobs(){
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let list = jobs.filter(j=>{
+    if(filters.remote && !j.type.toLowerCase().includes('remote')) return false;
+    if(filters.germany && !j.location.toLowerCase().includes('germany') && !j.location.toLowerCase().includes('berlin') && !j.location.toLowerCase().includes('munich')) return false;
+    if(filters.saved && !saved[j.id]) return false;
+    if(q && !j.title.toLowerCase().includes(q) && !j.company.toLowerCase().includes(q) && !j.tags.some(t=>t.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  renderJobs(list);
+}
+function refreshJobs(){
+  showToast('🔄 Refreshing jobs...');
+  setTimeout(()=>{init();showToast('✅ Jobs refreshed!');},800);
+}
+function updateStats(){
+  const a = Object.values(applied).filter(Boolean).length;
+  document.getElementById('stat-applied').textContent = a;
+  document.getElementById('stat-rate').textContent = jobs.length?Math.round(a/jobs.length*100)+'%':'0%';
+}
+
+// ── HR ──
+function renderHR(){
+  document.getElementById('hr-grid').innerHTML = JOBS_DATA.map(j=>`
+    <div class="hr-card">
+      <div class="hr-company">${j.company}</div>
+      <div class="hr-loc">📍 ${j.location}</div>
+      <a href="${j.hrUrl}" target="_blank" class="btn-find-hr">👤 Find HR on LinkedIn</a>
+    </div>`).join('');
+}
+
+// ── LINKS ──
+function renderLinks(){
+  document.getElementById('links-grid').innerHTML = LINKS_DATA.map(l=>`
+    <a href="${l.url}" target="_blank" class="link-card">
+      <div><div class="link-name">${l.name}</div><div class="link-region">${l.region}</div></div>
+      <span class="link-arrow">→</span>
+    </a>`).join('');
+}
+
+// ── PROGRESS ──
+function renderProgress(){
+  const stats = [
+    {label:'Jobs Found',val:10,max:10,color:'#3b82f6'},
+    {label:'Applied',val:Object.values(applied).filter(Boolean).length,max:10,color:'#10b981'},
+    {label:'HR Contacted',val:0,max:10,color:'#06b6d4'},
+    {label:'Interviews',val:0,max:10,color:'#f59e0b'},
+  ];
+  const c = 2*Math.PI*28;
+  document.getElementById('progress-row').innerHTML = stats.map(s=>{
+    const pct = s.max?s.val/s.max:0;
+    const offset = c*(1-pct);
+    return `<div class="progress-item">
+      <div class="progress-ring-wrap">
+        <svg width="70" height="70" viewBox="0 0 70 70">
+          <circle class="ring-bg" cx="35" cy="35" r="28"/>
+          <circle class="ring-fill" cx="35" cy="35" r="28" stroke="${s.color}"
+            stroke-dasharray="${c}" stroke-dashoffset="${offset}"/>
+        </svg>
+        <div class="ring-val">${s.val}</div>
+      </div>
+      <div class="prog-label">${s.label}</div>
+      <div class="prog-num">${s.val} / ${s.max}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── UTILS ──
+function copyMsg(){
+  navigator.clipboard.writeText(document.getElementById('msg-template').textContent);
+  showToast('📋 Message copied!');
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+init();
+</script>
+</body>
+</html>
