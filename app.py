@@ -79,29 +79,46 @@ def init_db():
 
 def save_jobs_db(jobs):
     conn = get_db()
-    if not conn: return 0
+    if not conn:
+        print("save_jobs_db: no DB connection")
+        return 0
     added = 0
     try:
         cur = conn.cursor()
+        # Ensure table exists
+        cur.execute("""CREATE TABLE IF NOT EXISTS jobs (
+            id TEXT PRIMARY KEY, title TEXT, company TEXT, location TEXT,
+            platform TEXT, salary TEXT, match_score INTEGER,
+            url TEXT, posted TEXT, status TEXT DEFAULT 'Pending',
+            hot BOOLEAN DEFAULT FALSE, hr_url TEXT, description TEXT,
+            created_at TIMESTAMP DEFAULT NOW())""")
+        conn.commit()
         for job in jobs:
-            cur.execute("""
-                INSERT INTO jobs (id, title, company, location, platform, salary,
-                    match_score, url, posted, status, hot, hr_url, description)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                ON CONFLICT (id) DO NOTHING
-            """, (
-                job["id"], job["title"], job["company"], job["location"],
-                job["platform"], job["salary"], job["match"], job["url"],
-                job["posted"], job["status"], job["hot"],
-                job.get("hrUrl",""), job.get("description","")[:500]
-            ))
-            if cur.rowcount > 0:
-                added += 1
+            try:
+                cur.execute("""
+                    INSERT INTO jobs (id, title, company, location, platform, salary,
+                        match_score, url, posted, status, hot, hr_url, description)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (id) DO NOTHING
+                """, (
+                    str(job["id"]), str(job["title"]), str(job["company"]),
+                    str(job["location"]), str(job["platform"]), str(job["salary"]),
+                    int(job["match"]), str(job["url"]), str(job.get("posted","")),
+                    str(job.get("status","Pending")), bool(job.get("hot",False)),
+                    str(job.get("hrUrl","")), str(job.get("description",""))[:500]
+                ))
+                if cur.rowcount > 0:
+                    added += 1
+            except Exception as e:
+                print(f"Row insert error: {e} — {job.get('title','?')}")
+                continue
         conn.commit()
         cur.close()
         conn.close()
+        print(f"save_jobs_db: saved {added} new jobs")
     except Exception as e:
         print(f"DB save error: {e}")
+        import traceback; traceback.print_exc()
     return added
 
 def load_jobs_db(search=None):
@@ -229,7 +246,7 @@ def fetch_adzuna(query, country="de", n=5):
                     "title":title,"company":company,"location":location,
                     "platform":f"Adzuna {country.upper()}","salary":salary,
                     "match":sc,"url":link,
-                    "posted":datetime.date.today().isoformat(),
+                    "posted":str(datetime.date.today()),
                     "status":"Pending","hot":sc>=90,"tags":[],
                     "hrUrl":f"https://www.linkedin.com/search/results/people/?keywords=HR+{requests.utils.quote(company)}",
                     "description":desc[:500],
@@ -400,6 +417,38 @@ def start_scheduler():
     while True:
         schedule.run_pending()
         time.sleep(60)
+
+@app.route("/api/debug")
+def debug():
+    results = {"db_url_set": bool(DATABASE_URL), "has_psycopg2": HAS_PG}
+    conn = get_db()
+    if conn:
+        try:
+            cur = conn.cursor()
+            # Check if tables exist
+            cur.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='jobs'")
+            results["jobs_table_exists"] = cur.fetchone()[0] > 0
+            if results["jobs_table_exists"]:
+                cur.execute("SELECT COUNT(*) FROM jobs")
+                results["jobs_count"] = cur.fetchone()[0]
+            # Try creating tables
+            cur.execute("""CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY, title TEXT, company TEXT, location TEXT,
+                platform TEXT, salary TEXT, match_score INTEGER,
+                url TEXT, posted TEXT, status TEXT DEFAULT 'Pending',
+                hot BOOLEAN DEFAULT FALSE, hr_url TEXT, description TEXT,
+                created_at TIMESTAMP DEFAULT NOW())""")
+            conn.commit()
+            results["table_created"] = True
+            cur.close()
+            conn.close()
+            results["db_connected"] = True
+        except Exception as e:
+            results["db_error"] = str(e)
+    else:
+        results["db_connected"] = False
+    return jsonify(results)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
