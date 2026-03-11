@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>JOBRADAR — Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#020c10;--surface:#040f15;--card:#061219;--border:#0d3a4a;
+  --accent:#00e5ff;--green:#00ff88;--warn:#ffaa00;--red:#ff3355;
+  --text:#b8d4de;--muted:#2a5060;--dim:#1a3a48;
+  --glow:0 0 24px rgba(0,229,255,.35);--glow2:0 0 24px rgba(0,255,136,.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden;cursor:crosshair}
+
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.012) 2px,rgba(0,229,255,.012) 4px);pointer-events:none;z-index:9998}
+/* grid */
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+
+/* ── LOADING ── */
+#loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:9999}
+.ld-logo{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;color:var(--accent);text-shadow:var(--glow);letter-spacing:8px}
+.ld-bar{width:220px;height:2px;background:rgba(0,229,255,.1)}
+.ld-fill{height:100%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:ldBar 1.2s ease-in-out infinite}
+@keyframes ldBar{0%{width:0;margin-left:0}50%{width:60%;margin-left:0}100%{width:0;margin-left:100%}}
+.ld-txt{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:4px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── HEADER ── */
+header{position:sticky;top:0;z-index:100;background:rgba(2,12,16,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo-mark{width:40px;height:40px;position:relative;flex-shrink:0}
+.logo-mark svg{width:100%;height:100%}
+.logo-text{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;letter-spacing:4px;color:var(--accent);text-shadow:var(--glow)}
+.logo-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;margin-top:2px}
+
+.nav-tabs{display:flex;gap:2px}
+.ntab{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:8px 18px;border:1px solid transparent;color:var(--muted);background:none;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.ntab:hover,.ntab.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.06);box-shadow:var(--glow)}
+
+.hdr-right{display:flex;align-items:center;gap:20px}
+.live-pill{display:flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--green);letter-spacing:2px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.clk{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:2px}
+
+/* ── HERO ── */
+.hero{position:relative;z-index:2;text-align:center;padding:56px 32px 44px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(0,229,255,.04) 0%,transparent 100%)}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);color:var(--muted);padding:5px 16px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin-bottom:20px}
+.hero-tag span{color:var(--green);font-size:8px}
+.hero h1{font-family:'Orbitron',monospace;font-size:clamp(28px,5vw,54px);font-weight:900;line-height:1.1;color:#fff;margin-bottom:14px;text-shadow:0 0 40px rgba(0,229,255,.2)}
+.hero h1 em{font-style:normal;color:var(--accent);text-shadow:var(--glow)}
+.hero p{color:var(--muted);font-size:16px;max-width:520px;margin:0 auto 32px;line-height:1.7;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px}
+.hero-stats{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:36px;border:1px solid var(--border)}
+.hstat{flex:1;min-width:140px;padding:20px 24px;border-right:1px solid var(--border);text-align:center}
+.hstat:last-child{border-right:none}
+.hstat-val{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--accent);text-shadow:var(--glow);line-height:1}
+.hstat-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:6px;text-transform:uppercase}
+.hero-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.hbtn{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:3px;padding:12px 28px;border:1px solid;cursor:pointer;text-decoration:none;transition:all .2s;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px}
+.hbtn-primary{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.07)}
+.hbtn-primary:hover{background:rgba(0,229,255,.18);box-shadow:var(--glow)}
+.hbtn-ghost{border-color:var(--border);color:var(--muted);background:transparent}
+.hbtn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── MAIN LAYOUT ── */
+.wrap{max-width:1260px;margin:0 auto;padding:0 28px;position:relative;z-index:2}
+
+/* ── PANE ── */
+.pane{display:none;padding:32px 0}.pane.active{display:block}
+
+/* ── SECTION HEADER ── */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+.sec-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--accent);letter-spacing:3px;text-transform:uppercase}
+.sec-sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:4px}
+.sec-action{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:9px 18px;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.sec-action:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:22px;padding:14px 18px;border:1px solid var(--border);background:var(--surface)}
+.srch{position:relative;flex:1;min-width:200px}
+.srch input{width:100%;background:rgba(0,229,255,.04);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;padding:9px 14px 9px 34px;outline:none;transition:all .2s}
+.srch input:focus{border-color:var(--accent);box-shadow:var(--glow)}
+.srch input::placeholder{color:var(--muted)}
+.srch-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px}
+.fbtn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:9px 14px;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;transition:all .15s;text-transform:uppercase;white-space:nowrap}
+.fbtn:hover,.fbtn.on{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.07);box-shadow:inset 0 -2px 0 var(--accent)}
+.rcount{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);padding:9px 14px;border:1px solid var(--border);white-space:nowrap}
+
+/* ── JOB CARDS ── */
+.jobs-list{display:flex;flex-direction:column;gap:10px}
+.jcard{background:var(--card);border:1px solid var(--border);padding:20px 22px;position:relative;overflow:hidden;transition:all .2s;animation:cardIn .35s ease both;cursor:default}
+.jcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--accent),var(--green));opacity:0;transition:opacity .2s}
+.jcard:hover{border-color:rgba(0,229,255,.35);background:rgba(6,18,25,.9);transform:translateX(3px)}
+.jcard:hover::before{opacity:1}
+.jcard.hot{border-left:3px solid var(--warn)}
+.jcard.hot::before{opacity:0}
+.jcard.applied-card{border-left:3px solid var(--green)}
+.jcard.applied-card::before{opacity:0}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.hot-badge{position:absolute;top:12px;right:14px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;padding:3px 10px;border:1px solid rgba(255,170,0,.4);color:var(--warn);background:rgba(255,170,0,.08)}
+.app-badge{position:absolute;top:12px;right:14px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;padding:3px 10px;border:1px solid rgba(0,255,136,.4);color:var(--green);background:rgba(0,255,136,.08)}
+
+.card-inner{display:flex;gap:18px;align-items:flex-start}
+.match-block{flex-shrink:0;width:58px;text-align:center}
+.match-circle{position:relative;width:58px;height:58px}
+.match-circle svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.match-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.match-pct{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;line-height:1;color:#fff}
+.match-pct.high{color:var(--green);text-shadow:var(--glow2)}
+.match-pct.mid{color:var(--accent);text-shadow:var(--glow)}
+.match-tag{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;margin-top:6px}
+
+.card-body{flex:1;min-width:0}
+.ctitle{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:#e8f4f8;line-height:1.3;margin-bottom:5px}
+.cmeta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.ccompany{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);letter-spacing:1px}
+.cloc,.csalary,.cposted{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)}
+.csalary{color:var(--green)}
+.ctags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ctag{font-size:11px;padding:3px 10px;border:1px solid var(--border);color:var(--muted);background:rgba(0,229,255,.03);font-family:'Share Tech Mono',monospace;letter-spacing:.5px}
+.ctag.feat{border-color:rgba(0,229,255,.3);color:var(--accent);background:rgba(0,229,255,.06)}
+
+.card-status{display:flex;align-items:center;gap:10px;margin-top:4px}
+.csel{background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 10px;cursor:pointer;outline:none;text-transform:uppercase}
+.csel:focus{border-color:var(--accent)}
+.csel-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px}
+
+.card-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0;min-width:128px}
+.ca-btn{display:block;padding:10px 0;text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;text-decoration:none;border:1px solid;transition:all .15s;text-transform:uppercase;cursor:pointer}
+.ca-apply{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.07)}
+.ca-apply:hover{background:rgba(0,229,255,.18);box-shadow:var(--glow)}
+.ca-hr{border-color:rgba(0,255,136,.4);color:var(--green);background:rgba(0,255,136,.05)}
+.ca-hr:hover{background:rgba(0,255,136,.14);box-shadow:var(--glow2)}
+
+/* ── HR SECTION ── */
+.hr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.hr-card{background:var(--card);border:1px solid var(--border);padding:18px 20px;transition:all .2s}
+.hr-card:hover{border-color:rgba(0,229,255,.3)}
+.hr-co{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;letter-spacing:1px}
+.hr-loc{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:1px}
+.hr-btn{display:block;width:100%;padding:10px 0;text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;text-decoration:none;border:1px solid var(--accent);color:var(--accent);background:rgba(0,229,255,.07);transition:all .2s;text-transform:uppercase}
+.hr-btn:hover{background:rgba(0,229,255,.18);box-shadow:var(--glow)}
+
+.msg-box{margin-top:28px;border:1px solid rgba(255,170,0,.25);background:rgba(255,170,0,.03);padding:22px 24px}
+.msg-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--warn);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+.msg-body{background:rgba(0,0,0,.4);padding:16px 18px;font-size:13px;color:#8aa0aa;line-height:1.8;font-family:'Share Tech Mono',monospace;white-space:pre-wrap;border:1px solid var(--border)}
+.copy-btn{margin-top:12px;padding:9px 20px;border:1px solid rgba(255,170,0,.3);color:var(--warn);background:rgba(255,170,0,.07);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.copy-btn:hover{background:rgba(255,170,0,.15)}
+
+/* ── LINKS ── */
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.link-card{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--card);border:1px solid var(--border);text-decoration:none;transition:all .2s;color:var(--text)}
+.link-card:hover{border-color:var(--accent);background:rgba(0,229,255,.04)}
+.link-name{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;color:#e8f4f8}
+.link-region{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px}
+.link-arrow{color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:14px}
+
+/* ── PROGRESS ── */
+.prog-section{background:var(--card);border:1px solid var(--border);padding:24px;margin-bottom:28px}
+.prog-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:22px}
+.prog-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.prog-item{text-align:center}
+.prog-ring-wrap{position:relative;width:72px;height:72px;margin:0 auto 10px}
+.prog-ring-wrap svg{transform:rotate(-90deg)}
+.r-bg{fill:none;stroke:rgba(0,229,255,.07);stroke-width:5}
+.r-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.r-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:#fff}
+.prog-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px}
+.prog-num{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--card);border:1px solid var(--accent);color:var(--accent);padding:12px 20px;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;box-shadow:var(--glow);transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── EMPTY / LOADING ── */
+.empty-state{text-align:center;padding:60px;color:var(--muted)}
+.empty-state h3{font-family:'Orbitron',monospace;font-size:13px;letter-spacing:3px;margin-bottom:10px;color:var(--dim)}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{border-top:1px solid var(--border);padding:20px 32px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px}
+footer a{color:var(--accent);text-decoration:none}
+
+@media(max-width:768px){
+  .card-inner{flex-direction:column}
+  .card-actions{flex-direction:row;min-width:auto;width:100%}
+  .ca-btn{flex:1}
+  .hero h1{font-size:28px}
+  .nav-tabs{display:none}
+  header{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="ld-logo">JOBRADAR</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+  <div class="ld-txt">INITIALIZING MISSION SYSTEMS...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <a href="/" class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#00e5ff" stroke-width="1" opacity=".3"/>
+        <circle cx="20" cy="20" r="11" stroke="#00e5ff" stroke-width="1" opacity=".25"/>
+        <circle cx="20" cy="20" r="4"  stroke="#00e5ff" stroke-width="1" opacity=".5"/>
+        <line x1="20" y1="2" x2="20" y2="38" stroke="#00e5ff" stroke-width=".5" opacity=".2"/>
+        <line x1="2"  y1="20" x2="38" y2="20" stroke="#00e5ff" stroke-width=".5" opacity=".2"/>
+        <circle cx="27" cy="12" r="2.5" fill="#00ff88"><animate attributeName="opacity" values="1;.2;1" dur="2s" repeatCount="indefinite"/></circle>
+        <circle cx="14" cy="26" r="1.8" fill="#00ff88"><animate attributeName="opacity" values=".7;.1;.7" dur="2.8s" repeatCount="indefinite"/></circle>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">JOBRADAR</div>
+      <div class="logo-sub">GERMANY OPS · INTELLIGENCE FEED</div>
+    </div>
+  </a>
+
+  <nav class="nav-tabs">
+    <button class="ntab active" onclick="showTab('jobs',this)">◈ Targets</button>
+    <button class="ntab" onclick="showTab('hr',this)">◉ HR Intel</button>
+    <button class="ntab" onclick="showTab('links',this)">⊕ Platforms</button>
+    <button class="ntab" onclick="showTab('progress',this)">▸ Progress</button>
+  </nav>
+
+  <div class="hdr-right">
+    <div class="live-pill"><div class="live-dot"></div>LIVE FEED</div>
+    <a href="/dashboard" class="ca-btn ca-apply" style="text-decoration:none;padding:8px 16px;font-size:10px">⚙ COMMAND</a>
+    <div class="clk" id="clk">--:--:--</div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag"><span>●</span> AUTO-SCAN · 09:00 DAILY · ADZUNA API</div>
+  <h1>YOUR DAILY<br/><em>JOB RADAR</em><br/>GERMANY &amp; REMOTE</h1>
+  <p>AI-SCORED TARGETS FOR PERFORMANCE MARKETING · SEO · GROWTH ROLES</p>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val" id="stat-total">—</div><div class="hstat-lbl">Targets</div></div>
+    <div class="hstat"><div class="hstat-val" id="stat-applied" style="color:var(--green);text-shadow:var(--glow2)">—</div><div class="hstat-lbl">Applied</div></div>
+    <div class="hstat"><div class="hstat-val" id="stat-interviews" style="color:var(--warn)">—</div><div class="hstat-lbl">Interviews</div></div>
+    <div class="hstat"><div class="hstat-val" id="stat-rate">—</div><div class="hstat-lbl">Apply Rate</div></div>
+  </div>
+  <div class="hero-btns">
+    <button class="hbtn hbtn-primary" onclick="showTab('jobs',null)">◈ VIEW TARGETS</button>
+    <a href="/dashboard" class="hbtn hbtn-ghost">⚙ COMMAND CENTER</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+
+  <!-- JOBS TAB -->
+  <div class="pane active" id="pane-jobs">
+    <div class="sec-hd">
+      <div>
+        <div class="sec-title">◈ Today's Matched Targets</div>
+        <div class="sec-sub" id="last-updated">LAST SCAN: —</div>
+      </div>
+      <button class="sec-action" onclick="runScan()">⟳ SCAN NOW</button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="srch">
+        <span class="srch-icon">⌕</span>
+        <input id="srch-input" type="text" placeholder="SEARCH TARGETS..." oninput="filterJobs()"/>
+      </div>
+      <button class="fbtn" id="f-remote"  onclick="toggleF('remote')">◎ REMOTE</button>
+      <button class="fbtn" id="f-germany" onclick="toggleF('germany')">◉ GERMANY</button>
+      <button class="fbtn" id="f-hot"     onclick="toggleF('hot')">◈ HOT</button>
+      <button class="fbtn" id="f-applied" onclick="toggleF('applied')">✓ APPLIED</button>
+      <div class="rcount" id="rcount">LOADING...</div>
+    </div>
+
+    <div class="jobs-list" id="jobs-list">
+      <div class="empty-state"><div class="spinner"></div><h3>ACQUIRING TARGETS...</h3></div>
+    </div>
+  </div>
+
+  <!-- HR TAB -->
+  <div class="pane" id="pane-hr">
+    <div class="sec-hd">
+      <div>
+        <div class="sec-title">◉ HR Intel — LinkedIn Contacts</div>
+        <div class="sec-sub">CONNECT WITH RECRUITERS AFTER APPLYING — DOUBLES CALLBACK RATE</div>
+      </div>
+    </div>
+    <div class="hr-grid" id="hr-grid"></div>
+    <div class="msg-box">
+      <div class="msg-title">▸ LinkedIn Outreach Template</div>
+      <div class="msg-body" id="msg-tpl">Hi [HR Name] 👋
+
+I recently applied for the [Job Title] role at [Company]. I bring 6+ years in performance marketing — delivering 120% organic traffic growth, 35% lead gen increase, and consistent ROAS across B2B, SaaS & FMCG.
+
+I also build AI-augmented marketing workflows using Python & LangChain that reduce manual work by ~40%.
+
+Would love to connect — portfolio at www.saddamadil.in
+
+Best,
+Saddam Adil</div>
+      <button class="copy-btn" onclick="copyMsg()">◈ COPY MESSAGE</button>
+    </div>
+  </div>
+
+  <!-- LINKS TAB -->
+  <div class="pane" id="pane-links">
+    <div class="sec-hd">
+      <div>
+        <div class="sec-title">⊕ Platform Quick Links</div>
+        <div class="sec-sub">PRE-SEARCHED RESULTS ON EACH JOB BOARD</div>
+      </div>
+    </div>
+    <div class="links-grid" id="links-grid"></div>
+  </div>
+
+  <!-- PROGRESS TAB -->
+  <div class="pane" id="pane-progress">
+    <div class="prog-section">
+      <div class="prog-title">▸ Mission Progress</div>
+      <div class="prog-row" id="prog-row"></div>
+    </div>
+    <div class="sec-title" style="margin-bottom:16px">✓ Applied Jobs</div>
+    <div class="jobs-list" id="applied-list">
+      <div class="empty-state"><h3>NO APPLICATIONS YET</h3></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>JOBRADAR · BUILT FOR <a href="https://saddamadil.in" target="_blank">SADDAM ADIL</a> · AUTO-SCANS DAILY AT 09:00</footer>
+
+<script>
+// ── STATE ──
+let allJobs = [];
+let flt = {remote:false,germany:false,hot:false,applied:false};
+
+const LINKS = [
+  {name:"LinkedIn Jobs",   region:"🌍 Global",   url:"https://www.linkedin.com/jobs/performance-marketing-manager-jobs-worldwide"},
+  {name:"Indeed Global",   region:"🌍 Remote",   url:"https://www.indeed.com/jobs?q=performance+marketing+specialist&l=remote"},
+  {name:"StepStone DE",    region:"🇩🇪 Germany",  url:"https://www.stepstone.de/jobs/Performance-Marketing-Manager/in-Deutschland.html"},
+  {name:"XING Jobs",       region:"🇩🇪 Germany",  url:"https://www.xing.com/jobs/search?keywords=seo+manager&location=berlin"},
+  {name:"Indeed Germany",  region:"🇩🇪 Germany",  url:"https://de.indeed.com/jobs?q=digital+marketing+specialist&l=Deutschland"},
+  {name:"Glassdoor",       region:"🌍 Global",   url:"https://www.glassdoor.com/Job/digital-marketing-manager-jobs-SRCH_KO0,25.htm"},
+  {name:"WeWorkRemotely",  region:"🌍 Remote",   url:"https://weworkremotely.com/categories/remote-marketing-jobs"},
+  {name:"Otta (Europe)",   region:"🇪🇺 Europe",   url:"https://app.otta.com/jobs/marketing"},
+  {name:"YC Jobs Board",   region:"🌍 Startups", url:"https://www.ycombinator.com/jobs/role/marketing"},
+  {name:"Arbeitsagentur",  region:"🇩🇪 Germany",  url:"https://www.arbeitsagentur.de/jobsuche/suche?was=marketing+manager&wo=Deutschland"},
+];
+
+// ── CLOCK ──
+function tick(){document.getElementById('clk').textContent=new Date().toUTCString().slice(17,25)+' UTC'}
+setInterval(tick,1000);tick();
+
+// ── FETCH ──
+async function fetchJobs(){
+  try{
+    const r=await fetch('/api/jobs');
+    const d=await r.json();
+    allJobs=Array.isArray(d)?d:(d.jobs||[]);
+    document.getElementById('last-updated').textContent='LAST SCAN: '+new Date().toLocaleString('en-IN');
+    updateHeroStats();
+    filterJobs();
+    renderHR();
+    renderProgress();
+  }catch(e){
+    document.getElementById('jobs-list').innerHTML='<div class="empty-state"><h3>CONNECTION LOST</h3><p style="font-family:\'Share Tech Mono\',monospace;font-size:11px;margin-top:8px"><button onclick="fetchJobs()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-family:\'Share Tech Mono\',monospace;font-size:11px;text-decoration:underline">RETRY</button></p></div>';
+  }
+}
+
+// ── HERO STATS ──
+function updateHeroStats(){
+  const bd={};
+  allJobs.forEach(j=>{const s=j.status||'Pending';bd[s]=(bd[s]||0)+1;});
+  const ap=bd.Applied||0,iv=bd.Interview||0;
+  const rate=allJobs.length?Math.round(ap/allJobs.length*100):0;
+  document.getElementById('stat-total').textContent=allJobs.length;
+  document.getElementById('stat-applied').textContent=ap;
+  document.getElementById('stat-interviews').textContent=iv;
+  document.getElementById('stat-rate').textContent=rate+'%';
+}
+
+// ── FILTER ──
+function filterJobs(){
+  const q=(document.getElementById('srch-input').value||'').toLowerCase();
+  let list=allJobs.filter(j=>{
+    const loc=(j.location||'').toLowerCase();
+    const txt=(j.title+j.company+(j.description||'')).toLowerCase();
+    if(flt.remote  && !loc.includes('remote'))return false;
+    if(flt.germany && !loc.includes('germany')&&!loc.includes('berlin')&&!loc.includes('munich'))return false;
+    if(flt.hot     && !j.hot)return false;
+    if(flt.applied && j.status!=='Applied')return false;
+    if(q&&!txt.includes(q)&&!loc.includes(q))return false;
+    return true;
+  });
+  document.getElementById('rcount').textContent=list.length+' TARGETS';
+  renderJobs(list);
+}
+
+function renderJobs(list){
+  const el=document.getElementById('jobs-list');
+  if(!list.length){el.innerHTML='<div class="empty-state"><h3>NO TARGETS MATCH FILTERS</h3></div>';return;}
+  el.innerHTML=list.map((j,i)=>jobCard(j,i)).join('');
+}
+
+function jobCard(j,i){
+  const m=j.match||0;
+  const mc=m>=90?'high':m>=75?'mid':'';
+  const circ=2*Math.PI*24;
+  const fill=circ*(m/100);
+  const strokeC=m>=90?'#00ff88':m>=75?'#00e5ff':'#2a5060';
+  const isApp=j.status==='Applied';
+  const isHot=j.hot&&!isApp;
+  const tags=(j.tags||[]).slice(0,4).map(t=>`<span class="ctag">${t}</span>`).join('');
+  const statuses=['Pending','Applied','Interview','Offer','Rejected'];
+  const opts=statuses.map(s=>`<option value="${s}"${j.status===s?' selected':''}>${s.toUpperCase()}</option>`).join('');
+  return `<div class="jcard${isHot?' hot':''}${isApp?' applied-card':''}" style="animation-delay:${i*.035}s">
+    ${isApp?'<div class="app-badge">✓ APPLIED</div>':isHot?'<div class="hot-badge">◈ HOT TARGET</div>':''}
+    <div class="card-inner">
+      <div class="match-block">
+        <div class="match-circle">
+          <svg viewBox="0 0 58 58" width="58" height="58">
+            <circle class="r-bg" cx="29" cy="29" r="24"/>
+            <circle class="r-fill" cx="29" cy="29" r="24" stroke="${strokeC}" stroke-dasharray="${fill} ${circ-fill}" stroke-linecap="round"/>
+          </svg>
+          <div class="match-num">
+            <span class="match-pct ${mc}">${m}</span>
+          </div>
+        </div>
+        <div class="match-tag">MATCH</div>
+      </div>
+      <div class="card-body">
+        <div class="ctitle">${j.title}</div>
+        <div class="cmeta">
+          <span class="ccompany">◈ ${j.company}</span>
+          <span class="cloc">⌖ ${j.location||'Remote'}</span>
+          ${j.salary?`<span class="csalary">◎ ${j.salary}</span>`:''}
+          <span class="cposted">⊙ ${j.posted||'Today'}</span>
+        </div>
+        <div class="ctags">
+          <span class="ctag feat">${j.platform||'ADZUNA'}</span>
+          ${tags}
+        </div>
+        <div class="card-status">
+          <span class="csel-lbl">STATUS:</span>
+          <select class="csel" onchange="updateStatus('${j.id}',this.value)">${opts}</select>
+        </div>
+      </div>
+      <div class="card-actions">
+        <a class="ca-btn ca-apply" href="${j.url||'#'}" target="_blank">▸ ENGAGE</a>
+        <a class="ca-btn ca-hr"    href="${j.hrUrl||'#'}" target="_blank">◉ HR INTEL</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── FILTER TOGGLE ──
+function toggleF(f){
+  flt[f]=!flt[f];
+  document.getElementById('f-'+f).classList.toggle('on',flt[f]);
+  filterJobs();
+}
+
+// ── STATUS UPDATE ──
+async function updateStatus(id,status){
+  try{
+    await fetch(`/api/jobs/${id}/status`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+    const j=allJobs.find(j=>String(j.id)===String(id));
+    if(j)j.status=status;
+    updateHeroStats();renderProgress();
+    toast(status==='Applied'?'✓ MARKED AS APPLIED':` STATUS → ${status}`);
+  }catch(e){toast('⚠ UPDATE FAILED');}
+}
+
+// ── SCAN ──
+async function runScan(){
+  toast('◈ INITIATING SCAN...');
+  try{
+    const r=await fetch('/api/search/run',{method:'POST'});
+    const d=await r.json();
+    await fetchJobs();
+    toast(`◈ SCAN COMPLETE — ${d.found} SIGNALS, ${d.added} NEW`);
+  }catch(e){toast('⚠ SCAN FAILED');}
+}
+
+// ── HR ──
+function renderHR(){
+  document.getElementById('hr-grid').innerHTML=allJobs.slice(0,12).map(j=>`
+    <div class="hr-card">
+      <div class="hr-co">${j.company}</div>
+      <div class="hr-loc">⌖ ${j.location||'Remote'}</div>
+      <a href="${j.hrUrl||'#'}" target="_blank" class="hr-btn">◉ FIND HR ON LINKEDIN</a>
+    </div>`).join('')||'<div class="empty-state"><h3>NO DATA</h3></div>';
+}
+
+// ── LINKS ──
+function renderLinks(){
+  document.getElementById('links-grid').innerHTML=LINKS.map(l=>`
+    <a href="${l.url}" target="_blank" class="link-card">
+      <div><div class="link-name">${l.name}</div><div class="link-region">${l.region}</div></div>
+      <span class="link-arrow">→</span>
+    </a>`).join('');
+}
+
+// ── PROGRESS ──
+function renderProgress(){
+  const bd={Pending:0,Applied:0,Interview:0,Offer:0,Rejected:0};
+  allJobs.forEach(j=>{const s=j.status||'Pending';bd[s]=(bd[s]||0)+1;});
+  const total=allJobs.length||1;
+  const stats=[
+    {lbl:'Jobs Found',  val:allJobs.length,   max:allJobs.length||10,color:'#00e5ff'},
+    {lbl:'Applied',     val:bd.Applied,        max:total,             color:'#00ff88'},
+    {lbl:'Interviews',  val:bd.Interview,       max:total,             color:'#ffaa00'},
+    {lbl:'Offers',      val:bd.Offer,           max:total,             color:'#ff88ff'},
+  ];
+  const c=2*Math.PI*28;
+  document.getElementById('prog-row').innerHTML=stats.map(s=>{
+    const off=c*(1-(s.max?s.val/s.max:0));
+    return `<div class="prog-item">
+      <div class="prog-ring-wrap">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle class="r-bg" cx="36" cy="36" r="28"/>
+          <circle class="r-fill" cx="36" cy="36" r="28" stroke="${s.color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+        </svg>
+        <div class="r-val">${s.val}</div>
+      </div>
+      <div class="prog-lbl">${s.lbl}</div>
+      <div class="prog-num">${s.val} / ${s.max}</div>
+    </div>`;
+  }).join('');
+
+  const applied=allJobs.filter(j=>j.status==='Applied');
+  document.getElementById('applied-list').innerHTML=applied.length
+    ?applied.map((j,i)=>jobCard(j,i)).join('')
+    :'<div class="empty-state"><h3>NO APPLICATIONS YET</h3></div>';
+}
+
+// ── TABS ──
+function showTab(t,el){
+  ['jobs','hr','links','progress'].forEach(p=>{
+    document.getElementById('pane-'+p).classList.toggle('active',p===t);
+  });
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(t==='links')renderLinks();
+}
+
+// ── UTILS ──
+function copyMsg(){navigator.clipboard.writeText(document.getElementById('msg-tpl').textContent);toast('◈ MESSAGE COPIED');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ── INIT ──
+async function init(){
+  await fetchJobs();
+  document.getElementById('loader').style.display='none';
+  setInterval(fetchJobs,300000);
+}
+init();
+</script>
+</body>
+</html>

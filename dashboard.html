@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>JOBRADAR — COMMAND CENTER</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#020c10;--surface:#040f15;--card:#061219;--border:#0d3a4a;
+  --accent:#00e5ff;--green:#00ff88;--warn:#ffaa00;--red:#ff3355;
+  --text:#b8d4de;--muted:#2a5060;--dim:#1a3a48;
+  --glow:0 0 24px rgba(0,229,255,.35);--glow2:0 0 24px rgba(0,255,136,.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden;cursor:crosshair;display:flex}
+
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.012) 2px,rgba(0,229,255,.012) 4px);pointer-events:none;z-index:9998}
+/* grid */
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:9999}
+.ld-logo{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--accent);text-shadow:var(--glow);letter-spacing:8px}
+.ld-bar{width:220px;height:2px;background:rgba(0,229,255,.1)}
+.ld-fill{height:100%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:ldBar 1.2s ease-in-out infinite}
+@keyframes ldBar{0%{width:0;margin-left:0}50%{width:60%;margin-left:0}100%{width:0;margin-left:100%}}
+.ld-txt{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:4px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── SIDEBAR ── */
+.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto}
+.sb-logo{padding:22px 20px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;text-decoration:none}
+.sb-logo-mark{width:34px;height:34px;flex-shrink:0}
+.sb-logo-mark svg{width:100%;height:100%}
+.sb-logo-text{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--accent);letter-spacing:3px;text-shadow:var(--glow)}
+.sb-logo-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:2px;margin-top:2px}
+
+.sb-section{padding:18px 20px 6px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:3px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:10px;padding:11px 20px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;border-left:2px solid transparent}
+.sb-link:hover,.sb-link.active{color:var(--accent);background:rgba(0,229,255,.05);border-left-color:var(--accent)}
+.sb-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sb-badge{margin-left:auto;background:rgba(0,229,255,.15);color:var(--accent);font-size:9px;font-weight:700;padding:2px 7px;border:1px solid rgba(0,229,255,.3);font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+.sb-bottom{margin-top:auto;padding:20px}
+.sb-back{display:block;padding:10px 14px;border:1px solid rgba(0,229,255,.25);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;text-align:center;text-decoration:none;text-transform:uppercase;transition:all .2s}
+.sb-back:hover{background:rgba(0,229,255,.1);box-shadow:var(--glow)}
+.sb-status{margin-top:12px;padding:10px 14px;border:1px solid var(--border);background:var(--card)}
+.sb-status-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sb-status-row:last-child{margin-bottom:0}
+.sb-status-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px}
+.sb-status-val{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--green);letter-spacing:1px}
+.sb-status-val.warn{color:var(--warn)}
+.sb-status-val.off{color:var(--red)}
+
+/* ── MAIN ── */
+.main{margin-left:230px;flex:1;min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:2}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 32px;border-bottom:1px solid var(--border);background:rgba(2,12,16,.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50;flex-wrap:wrap;gap:12px}
+.page-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:#fff;letter-spacing:3px}
+.page-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+.tbtn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:9px 18px;border:1px solid;cursor:pointer;transition:all .15s;text-transform:uppercase;display:inline-flex;align-items:center;gap:7px}
+.tbtn-primary{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.07)}
+.tbtn-primary:hover{background:rgba(0,229,255,.18);box-shadow:var(--glow)}
+.tbtn-ghost{border-color:var(--border);color:var(--muted);background:transparent}
+.tbtn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.clk{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px}
+
+/* ── CONTENT ── */
+.content{padding:28px 32px;flex:1}
+
+/* ── PANES ── */
+.dash-pane{display:none}.dash-pane.active{display:block}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:rgba(0,229,255,.3)}
+.kpi::after{content:'';position:absolute;top:-24px;right:-24px;width:80px;height:80px;border-radius:50%;opacity:.06}
+.kpi.c-blue::after{background:var(--accent)}
+.kpi.c-green::after{background:var(--green)}
+.kpi.c-warn::after{background:var(--warn)}
+.kpi.c-red::after{background:var(--red)}
+.kpi.c-cyan::after{background:#00ffcc}
+.kpi-icon{font-size:18px;margin-bottom:10px;opacity:.7}
+.kpi-val{font-family:'Orbitron',monospace;font-size:30px;font-weight:900;color:#fff;line-height:1;text-shadow:var(--glow)}
+.kpi.c-green .kpi-val{color:var(--green);text-shadow:var(--glow2)}
+.kpi.c-warn .kpi-val{color:var(--warn)}
+.kpi.c-red .kpi-val{color:var(--red)}
+.kpi-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:6px;text-transform:uppercase}
+.kpi-change{font-family:'Share Tech Mono',monospace;font-size:9px;font-weight:600;margin-top:4px;letter-spacing:1px}
+.kpi-change.up{color:var(--green)}.kpi-change.dn{color:var(--red)}.kpi-change.neu{color:var(--muted)}
+
+/* ── PANELS ── */
+.panel{background:var(--card);border:1px solid var(--border);padding:20px 22px;margin-bottom:20px}
+.panel-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:3px;text-transform:uppercase}
+.panel-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px}
+
+/* ── TABLE ── */
+.table{width:100%;border-collapse:collapse}
+.table th{text-align:left;padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.table td{padding:12px 14px;border-bottom:1px solid rgba(0,229,255,.04);font-family:'Rajdhani',sans-serif;font-size:14px;vertical-align:middle}
+.table tr:hover td{background:rgba(0,229,255,.03)}
+.table tr:last-child td{border-bottom:none}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 10px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;border:1px solid;text-transform:uppercase}
+.badge.pending{border-color:rgba(255,170,0,.4);color:var(--warn);background:rgba(255,170,0,.07)}
+.badge.applied{border-color:rgba(0,229,255,.4);color:var(--accent);background:rgba(0,229,255,.07)}
+.badge.interview{border-color:rgba(0,255,136,.4);color:var(--green);background:rgba(0,255,136,.07)}
+.badge.rejected{border-color:rgba(255,51,85,.3);color:var(--red);background:rgba(255,51,85,.05)}
+.badge.success{border-color:rgba(0,255,136,.4);color:var(--green);background:rgba(0,255,136,.07)}
+.badge.partial{border-color:rgba(255,170,0,.4);color:var(--warn);background:rgba(255,170,0,.07)}
+
+.match-pill{padding:3px 10px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;border:1px solid rgba(0,229,255,.3);color:var(--accent);background:rgba(0,229,255,.07)}
+.match-pill.high{border-color:rgba(0,255,136,.4);color:var(--green);background:rgba(0,255,136,.07)}
+
+/* ── STATUS SELECT ── */
+.status-sel{background:rgba(0,0,0,.4);border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 10px;cursor:pointer;outline:none;text-transform:uppercase;transition:border-color .15s}
+.status-sel:focus{border-color:var(--accent)}
+
+/* ── CHART ── */
+.chart-wrap{height:180px;display:flex;align-items:flex-end;gap:8px;padding-top:10px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bar{width:100%;border-top:1px solid var(--accent);transition:height .6s ease;position:relative;min-height:2px}
+.bar:hover{filter:brightness(1.4)}
+.bar-val{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent);text-align:center}
+.bar-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);text-align:center;letter-spacing:1px}
+
+/* ── ACTIVITY LOG ── */
+.log-item{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid rgba(0,229,255,.05)}
+.log-item:last-child{border-bottom:none}
+.log-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.log-time{font-family:'Share Tech Mono',monospace;color:var(--muted);font-size:10px;letter-spacing:1px;white-space:nowrap;min-width:90px}
+.log-text{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text);letter-spacing:.5px}
+
+/* ── SEARCH INPUT ── */
+.search-row{display:flex;gap:10px;margin-bottom:14px}
+.search-row input{flex:1;background:rgba(0,229,255,.04);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;padding:9px 14px;outline:none;transition:all .2s}
+.search-row input:focus{border-color:var(--accent);box-shadow:var(--glow)}
+.search-row input::placeholder{color:var(--muted)}
+
+/* ── PROGRESS RINGS ── */
+.prog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.prog-item{text-align:center}
+.prog-ring-wrap{position:relative;width:72px;height:72px;margin:0 auto 10px}
+.prog-ring-wrap svg{transform:rotate(-90deg)}
+.r-bg{fill:none;stroke:rgba(0,229,255,.07);stroke-width:5}
+.r-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.r-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:#fff}
+.prog-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.prog-num{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-top:2px}
+
+/* ── CONFIG ── */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cfg-group{display:flex;flex-direction:column;gap:6px}
+.cfg-group.full{grid-column:1/-1}
+.cfg-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.cfg-input{background:rgba(0,229,255,.04);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px 14px;outline:none;transition:border-color .2s;letter-spacing:1px;width:100%}
+.cfg-input:focus{border-color:var(--accent);box-shadow:var(--glow)}
+.cfg-input::placeholder{color:var(--muted)}
+textarea.cfg-input{resize:vertical;min-height:90px}
+.cfg-health{margin-top:20px;border:1px solid var(--border);padding:16px 18px}
+.cfg-health-title{font-family:'Orbitron',monospace;font-size:11px;color:var(--accent);letter-spacing:3px;margin-bottom:14px}
+.health-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,229,255,.05);font-family:'Share Tech Mono',monospace;font-size:11px}
+.health-row:last-child{border-bottom:none}
+.health-key{color:var(--muted);letter-spacing:1px}
+.health-val{color:var(--green)}.health-val.warn{color:var(--warn)}.health-val.off{color:var(--red)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--card);border:1px solid var(--accent);color:var(--accent);padding:12px 22px;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;box-shadow:var(--glow);transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:60px;color:var(--muted)}
+.empty-state h3{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;margin-bottom:10px;color:var(--dim)}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite;display:inline-block}
+
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .cfg-grid{grid-template-columns:1fr}
+  .content{padding:20px 16px}
+  .topbar{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="ld-logo">COMMAND CENTER</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+  <div class="ld-txt">LOADING INTELLIGENCE SYSTEMS...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a href="/" class="sb-logo">
+    <div class="sb-logo-mark">
+      <svg viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#00e5ff" stroke-width="1" opacity=".3"/>
+        <circle cx="20" cy="20" r="11" stroke="#00e5ff" stroke-width="1" opacity=".25"/>
+        <circle cx="20" cy="20" r="4"  stroke="#00e5ff" stroke-width="1" opacity=".5"/>
+        <line x1="20" y1="2" x2="20" y2="38" stroke="#00e5ff" stroke-width=".5" opacity=".2"/>
+        <line x1="2"  y1="20" x2="38" y2="20" stroke="#00e5ff" stroke-width=".5" opacity=".2"/>
+        <circle cx="27" cy="12" r="2.5" fill="#00ff88"><animate attributeName="opacity" values="1;.2;1" dur="2s" repeatCount="indefinite"/></circle>
+        <circle cx="14" cy="26" r="1.8" fill="#00ff88"><animate attributeName="opacity" values=".7;.1;.7" dur="2.8s" repeatCount="indefinite"/></circle>
+      </svg>
+    </div>
+    <div>
+      <div class="sb-logo-text">JOBRADAR</div>
+      <div class="sb-logo-sub">COMMAND CENTER</div>
+    </div>
+  </a>
+
+  <div class="sb-section">Overview</div>
+  <button class="sb-link active" onclick="showPane('overview',this)"><span class="sb-icon">◈</span>Dashboard</button>
+  <button class="sb-link" onclick="showPane('jobs',this)"><span class="sb-icon">◉</span>All Targets <span class="sb-badge" id="sb-count">—</span></button>
+  <button class="sb-link" onclick="showPane('weekly',this)"><span class="sb-icon">▸</span>Weekly Intel</button>
+
+  <div class="sb-section">System</div>
+  <button class="sb-link" onclick="showPane('logs',this)"><span class="sb-icon">⊕</span>Search Logs</button>
+  <button class="sb-link" onclick="showPane('config',this)"><span class="sb-icon">⚙</span>API Config</button>
+
+  <div class="sb-bottom">
+    <a href="/" class="sb-back">◈ Back to Mission Feed</a>
+    <div class="sb-status" id="sb-status">
+      <div class="sb-status-row"><span class="sb-status-lbl">ADZUNA API</span><span class="sb-status-val" id="s-adzuna">CHECKING...</span></div>
+      <div class="sb-status-row"><span class="sb-status-lbl">DATABASE</span><span class="sb-status-val" id="s-db">CHECKING...</span></div>
+      <div class="sb-status-row"><span class="sb-status-lbl">LAST SCAN</span><span class="sb-status-val neu" id="s-scan">—</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">DASHBOARD</div>
+      <div class="page-sub" id="page-sub">MISSION OVERVIEW · <span class="live-dot"></span> LIVE</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="clk" id="clk">--:--:-- UTC</div>
+      <button class="tbtn tbtn-ghost" onclick="refreshAll()">⟳ REFRESH</button>
+      <button class="tbtn tbtn-primary" onclick="runScan()">◈ SCAN NOW</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ═══ OVERVIEW PANE ═══ -->
+    <div class="dash-pane active" id="pane-overview">
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi c-blue"><div class="kpi-icon">◈</div><div class="kpi-val" id="k-total">—</div><div class="kpi-label">Total Targets</div><div class="kpi-change neu" id="k-total-sub">Loading...</div></div>
+        <div class="kpi c-green"><div class="kpi-icon">✓</div><div class="kpi-val" id="k-applied">—</div><div class="kpi-label">Applied</div><div class="kpi-change neu" id="k-applied-sub">This session</div></div>
+        <div class="kpi c-warn"><div class="kpi-icon">◉</div><div class="kpi-val" id="k-hot">—</div><div class="kpi-label">Hot Targets</div><div class="kpi-change neu">Priority roles</div></div>
+        <div class="kpi c-cyan"><div class="kpi-icon">⊙</div><div class="kpi-val" id="k-interviews">—</div><div class="kpi-label">Interviews</div><div class="kpi-change neu">Keep applying!</div></div>
+        <div class="kpi c-green"><div class="kpi-icon">▸</div><div class="kpi-val" id="k-rate">—</div><div class="kpi-label">Apply Rate</div><div class="kpi-change neu">Response metric</div></div>
+      </div>
+
+      <!-- CHART + ACTIVITY -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="panel">
+          <div class="panel-hd">
+            <div>
+              <div class="panel-title">◈ Jobs Found Per Scan</div>
+              <div class="panel-sub">Last 7 operations</div>
+            </div>
+          </div>
+          <div class="chart-wrap" id="chart-area">
+            <div class="empty-state" style="padding:20px"><div class="spinner"></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-hd">
+            <div>
+              <div class="panel-title">⚡ Recent Activity</div>
+              <div class="panel-sub">Latest scan operations</div>
+            </div>
+          </div>
+          <div id="activity-log">
+            <div class="empty-state" style="padding:20px"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP TARGETS -->
+      <div class="panel">
+        <div class="panel-hd">
+          <div>
+            <div class="panel-title">◉ Top Matched Targets</div>
+            <div class="panel-sub">Highest score acquisitions</div>
+          </div>
+          <button class="tbtn tbtn-ghost" style="font-size:10px;padding:7px 14px" onclick="showPane('jobs',null)">VIEW ALL →</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="table" id="overview-table">
+            <thead><tr><th>Match</th><th>Target</th><th>Location</th><th>Salary</th><th>Status</th><th>Update</th></tr></thead>
+            <tbody><tr><td colspan="6"><div class="empty-state" style="padding:20px"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ALL JOBS PANE ═══ -->
+    <div class="dash-pane" id="pane-jobs">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#fff;letter-spacing:3px">ALL TARGETS</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px">Manage and track all acquired intelligence</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="tbtn tbtn-ghost" onclick="exportCSV()">⊕ Export CSV</button>
+          <button class="tbtn tbtn-primary" onclick="refreshAll()">⟳ Refresh</button>
+        </div>
+      </div>
+      <div class="search-row">
+        <input type="text" id="jobs-search" placeholder="SEARCH TARGETS, COMPANIES, SKILLS..." oninput="renderAllJobs(this.value)"/>
+      </div>
+      <div class="panel">
+        <div style="overflow-x:auto">
+          <table class="table" id="all-jobs-table">
+            <thead><tr><th>Match</th><th>Title</th><th>Company</th><th>Location</th><th>Salary</th><th>Source</th><th>Posted</th><th>Status</th><th></th></tr></thead>
+            <tbody><tr><td colspan="9"><div class="empty-state" style="padding:20px"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ WEEKLY PANE ═══ -->
+    <div class="dash-pane" id="pane-weekly">
+      <div style="margin-bottom:22px">
+        <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#fff;letter-spacing:3px">WEEKLY INTEL</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px">Track job search momentum and progress rings</div>
+      </div>
+      <div class="kpi-grid" id="weekly-kpis"></div>
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-hd">
+          <div><div class="panel-title">▸ Mission Progress Rings</div></div>
+        </div>
+        <div class="prog-grid" id="prog-rings"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd">
+          <div><div class="panel-title">◈ Scan History Breakdown</div></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="table" id="weekly-table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LOGS PANE ═══ -->
+    <div class="dash-pane" id="pane-logs">
+      <div style="margin-bottom:22px">
+        <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#fff;letter-spacing:3px">SEARCH LOGS</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px">History of all automated scan operations</div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd">
+          <div><div class="panel-title">⊕ Execution Log</div><div class="panel-sub">Last 30 operations</div></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="table" id="logs-table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CONFIG PANE ═══ -->
+    <div class="dash-pane" id="pane-config">
+      <div style="margin-bottom:22px">
+        <div style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#fff;letter-spacing:3px">API CONFIG</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px">Manage API keys and search parameters</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><div class="panel-title">◈ API Keys</div></div>
+        <div class="cfg-grid">
+          <div class="cfg-group">
+            <label class="cfg-lbl">Adzuna App ID</label>
+            <input class="cfg-input" type="text" id="cfg-appid" placeholder="(set in server environment)"/>
+          </div>
+          <div class="cfg-group">
+            <label class="cfg-lbl">Adzuna App Key</label>
+            <input class="cfg-input" type="password" id="cfg-appkey" placeholder="(set in server environment)"/>
+          </div>
+          <div class="cfg-group">
+            <label class="cfg-lbl">Search Schedule</label>
+            <input class="cfg-input" type="text" value="Daily at 09:00 IST" readonly/>
+          </div>
+          <div class="cfg-group">
+            <label class="cfg-lbl">Storage Mode</label>
+            <input class="cfg-input" type="text" id="cfg-storage" value="Checking..." readonly/>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><div class="panel-title">◉ Search Settings</div></div>
+        <div class="cfg-grid">
+          <div class="cfg-group full">
+            <label class="cfg-lbl">Job Search Keywords (one per line)</label>
+            <textarea class="cfg-input">performance marketing manager
+SEO manager
+digital marketing manager
+growth marketing manager
+AI marketing specialist
+paid media manager</textarea>
+          </div>
+          <div class="cfg-group">
+            <label class="cfg-lbl">Target Countries</label>
+            <input class="cfg-input" type="text" value="Germany + UK + Remote" readonly/>
+          </div>
+          <div class="cfg-group">
+            <label class="cfg-lbl">Min Match Score</label>
+            <input class="cfg-input" type="number" value="65" min="0" max="100"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-health">
+        <div class="cfg-health-title">◈ System Health Check</div>
+        <div id="health-rows">
+          <div class="health-row"><span class="health-key">LOADING HEALTH DATA...</span><span class="health-val"><div class="spinner" style="width:14px;height:14px;margin:0"></div></span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="tbtn tbtn-primary" onclick="testApi()">◈ TEST CONNECTION</button>
+        <button class="tbtn tbtn-ghost" onclick="toast('✓ CONFIG SAVED')">⊕ Save Config</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ── STATE ──
+let allJobs=[], allLogs=[];
+
+// ── CLOCK ──
+function tick(){document.getElementById('clk').textContent=new Date().toUTCString().slice(17,25)+' UTC';}
+setInterval(tick,1000);tick();
+
+// ── TOAST ──
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ── PANE SWITCH ──
+function showPane(p,el){
+  document.querySelectorAll('.dash-pane').forEach(d=>d.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+p).classList.add('active');
+  if(el)el.classList.add('active');
+  else{
+    // find the sb-link for this pane
+    document.querySelectorAll('.sb-link').forEach(b=>{
+      if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+p+"'"))b.classList.add('active');
+    });
+  }
+  const titles={overview:'DASHBOARD',jobs:'ALL TARGETS',weekly:'WEEKLY INTEL',logs:'SEARCH LOGS',config:'API CONFIG'};
+  document.getElementById('page-title').textContent=titles[p]||'DASHBOARD';
+  if(p==='jobs')renderAllJobs('');
+  if(p==='weekly')renderWeekly();
+  if(p==='logs')renderLogs();
+  if(p==='config')loadConfig();
+}
+
+// ── FETCH ALL ──
+async function refreshAll(){
+  try{
+    const [jobsRes,logsRes]=await Promise.all([fetch('/api/jobs'),fetch('/api/logs')]);
+    allJobs=await jobsRes.json();
+    if(!Array.isArray(allJobs))allJobs=[];
+    const logsData=await logsRes.json();
+    allLogs=Array.isArray(logsData)?logsData:(logsData.logs||[]);
+    updateKPIs();
+    renderChart();
+    renderActivity();
+    renderOverviewTable();
+    document.getElementById('sb-count').textContent=allJobs.length;
+    // update sidebar status
+    const lastLog=allLogs[0];
+    document.getElementById('s-scan').textContent=lastLog?(lastLog.date+' '+lastLog.time):'—';
+  }catch(e){
+    toast('⚠ COMMS FAILURE — RETRY');
+  }
+}
+
+// ── KPIs ──
+function updateKPIs(){
+  const applied=allJobs.filter(j=>j.status==='Applied').length;
+  const interviews=allJobs.filter(j=>j.status==='Interview').length;
+  const hot=allJobs.filter(j=>j.hot).length;
+  const rate=allJobs.length?Math.round(applied/allJobs.length*100):0;
+  document.getElementById('k-total').textContent=allJobs.length;
+  document.getElementById('k-applied').textContent=applied;
+  document.getElementById('k-hot').textContent=hot;
+  document.getElementById('k-interviews').textContent=interviews;
+  document.getElementById('k-rate').textContent=rate+'%';
+  document.getElementById('k-total-sub').textContent=hot+' HOT TARGET'+(hot!==1?'S':'');
+  document.getElementById('k-applied-sub').textContent=rate+'% APPLY RATE';
+}
+
+// ── CHART ──
+function renderChart(){
+  const logs=allLogs.slice(0,7).reverse();
+  if(!logs.length){document.getElementById('chart-area').innerHTML='<div class="empty-state" style="padding:20px"><h3>NO SCAN DATA</h3></div>';return;}
+  const max=Math.max(...logs.map(l=>l.jobs_found||0),1);
+  document.getElementById('chart-area').innerHTML=logs.map(l=>`
+    <div class="bar-col">
+      <div class="bar-val">${l.jobs_found||0}</div>
+      <div class="bar" style="height:${((l.jobs_found||0)/max)*140}px;background:linear-gradient(180deg,rgba(0,229,255,.25),rgba(0,229,255,.06))" title="${l.jobs_found||0} jobs on ${l.date}"></div>
+      <div class="bar-lbl">${(l.date||'').slice(0,6)}</div>
+    </div>`).join('');
+}
+
+// ── ACTIVITY ──
+function renderActivity(){
+  if(!allLogs.length){document.getElementById('activity-log').innerHTML='<div class="empty-state" style="padding:20px"><h3>NO ACTIVITY</h3></div>';return;}
+  const colors=['var(--green)','var(--accent)','var(--warn)','#00ffcc','var(--muted)'];
+  document.getElementById('activity-log').innerHTML=allLogs.slice(0,5).map((l,i)=>`
+    <div class="log-item">
+      <div class="log-dot" style="background:${colors[i%colors.length]};box-shadow:0 0 6px ${colors[i%colors.length]}"></div>
+      <div class="log-time">${l.date||''} ${l.time||''}</div>
+      <div class="log-text">${l.jobs_found||0} SIGNALS · ${l.new_added||0} NEW · <span style="color:${l.status==='Success'?'var(--green)':'var(--warn)'}">${(l.status||'—').toUpperCase()}</span></div>
+    </div>`).join('');
+}
+
+// ── OVERVIEW TABLE ──
+function renderOverviewTable(){
+  const rows=allJobs.slice(0,5).map(j=>`<tr>
+    <td>${matchPill(j.match||0)}</td>
+    <td><strong style="color:#e8f4f8;font-family:'Rajdhani',sans-serif">${j.title||'—'}</strong><br><span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px">${j.company||'—'}</span></td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">${j.location||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--green)">${j.salary||'—'}</td>
+    <td>${statusBadge(j.status||'Pending')}</td>
+    <td>${statusSelect(j.id,j.status)}</td>
+  </tr>`).join('');
+  document.getElementById('overview-table').innerHTML=`<thead><tr><th>Match</th><th>Target</th><th>Location</th><th>Salary</th><th>Status</th><th>Update</th></tr></thead><tbody>${rows||noData(6)}</tbody>`;
+}
+
+// ── ALL JOBS ──
+function renderAllJobs(q){
+  let list=allJobs;
+  if(q){const s=q.toLowerCase();list=list.filter(j=>(j.title||'').toLowerCase().includes(s)||(j.company||'').toLowerCase().includes(s)||(j.location||'').toLowerCase().includes(s));}
+  const rows=list.map(j=>`<tr>
+    <td>${matchPill(j.match||0)}</td>
+    <td><strong style="color:#e8f4f8">${j.title||'—'}</strong></td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent)">${j.company||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">${j.location||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--green)">${j.salary||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted)">${j.platform||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted)">${j.posted||'—'}</td>
+    <td>${statusSelect(j.id,j.status)}</td>
+    <td><a href="${j.url||'#'}" target="_blank" class="tbtn tbtn-primary" style="font-size:10px;padding:6px 12px;text-decoration:none">▸ APPLY</a></td>
+  </tr>`).join('');
+  document.getElementById('all-jobs-table').innerHTML=`<thead><tr><th>Match</th><th>Title</th><th>Company</th><th>Location</th><th>Salary</th><th>Source</th><th>Posted</th><th>Status</th><th></th></tr></thead><tbody>${rows||noData(9)}</tbody>`;
+}
+
+// ── WEEKLY ──
+function renderWeekly(){
+  const applied=allJobs.filter(j=>j.status==='Applied').length;
+  const interviews=allJobs.filter(j=>j.status==='Interview').length;
+  const totalFound=allLogs.reduce((s,l)=>s+(l.jobs_found||0),0);
+  const totalAdded=allLogs.reduce((s,l)=>s+(l.new_added||0),0);
+  document.getElementById('weekly-kpis').innerHTML=[
+    {icon:'◈',val:totalFound,lbl:'Total Found',  c:'c-blue'},
+    {icon:'⊕',val:totalAdded,lbl:'Total Added',  c:'c-cyan'},
+    {icon:'✓',val:applied,   lbl:'Applied',      c:'c-green'},
+    {icon:'◉',val:interviews,lbl:'Interviews',   c:'c-warn'},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="kpi-icon">${k.icon}</div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
+
+  // Progress rings
+  const total=Math.max(allJobs.length,1);
+  const ringStats=[
+    {lbl:'Found',     val:allJobs.length, max:Math.max(allJobs.length,10), color:'#00e5ff'},
+    {lbl:'Applied',   val:applied,        max:total,                       color:'#00ff88'},
+    {lbl:'Interviews',val:interviews,     max:total,                       color:'#ffaa00'},
+    {lbl:'Offers',    val:0,              max:total,                       color:'#ff88ff'},
+  ];
+  const c=2*Math.PI*28;
+  document.getElementById('prog-rings').innerHTML=ringStats.map(s=>{
+    const off=c*(1-(s.max?s.val/s.max:0));
+    return `<div class="prog-item">
+      <div class="prog-ring-wrap">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle class="r-bg" cx="36" cy="36" r="28"/>
+          <circle class="r-fill" cx="36" cy="36" r="28" stroke="${s.color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+        </svg>
+        <div class="r-val">${s.val}</div>
+      </div>
+      <div class="prog-lbl">${s.lbl}</div>
+      <div class="prog-num">${s.val} / ${s.max}</div>
+    </div>`;
+  }).join('');
+
+  const rows=allLogs.slice(0,10).map(l=>`<tr>
+    <td style="color:#e8f4f8;font-family:'Share Tech Mono',monospace;font-size:11px">${l.date||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">${l.time||'—'}</td>
+    <td style="color:var(--accent);font-family:'Orbitron',monospace;font-size:12px">${l.jobs_found||0}</td>
+    <td style="color:var(--green);font-family:'Orbitron',monospace;font-size:12px">${l.new_added||0}</td>
+    <td>${statusBadge(l.status||'—',true)}</td>
+  </tr>`).join('');
+  document.getElementById('weekly-table').innerHTML=`<thead><tr><th>Date</th><th>Time</th><th>Found</th><th>Added</th><th>Status</th></tr></thead><tbody>${rows||noData(5)}</tbody>`;
+}
+
+// ── LOGS ──
+function renderLogs(){
+  if(!allLogs.length){document.getElementById('logs-table').innerHTML=`<tbody>${noData(6)}</tbody>`;return;}
+  const rows=allLogs.map(l=>`<tr>
+    <td style="color:#e8f4f8;font-family:'Share Tech Mono',monospace;font-size:11px">${l.date||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">${l.time||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">Adzuna DE / GB</td>
+    <td style="color:var(--accent);font-family:'Orbitron',monospace;font-size:12px">${l.jobs_found||0}</td>
+    <td style="color:var(--green);font-family:'Orbitron',monospace;font-size:12px">${l.new_added||0}</td>
+    <td>${statusBadge(l.status||'—',true)}</td>
+  </tr>`).join('');
+  document.getElementById('logs-table').innerHTML=`<thead><tr><th>Date</th><th>Time</th><th>Sources</th><th>Found</th><th>Added</th><th>Status</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+// ── CONFIG / HEALTH ──
+async function loadConfig(){
+  try{
+    const r=await fetch('/api/health');
+    const h=await r.json();
+    const rows=[
+      {k:'ADZUNA API',    v:h.adzuna_configured?'CONFIGURED':'NOT SET',   ok:h.adzuna_configured},
+      {k:'DATABASE',      v:h.db_connected?'POSTGRESQL CONNECTED':'JSON FILE',  ok:h.db_connected},
+      {k:'SCHEDULER',     v:h.scheduler_running?'RUNNING':'STOPPED',     ok:h.scheduler_running},
+      {k:'JOBS IN DB',    v:String(h.jobs_count||0)+' RECORDS',            ok:true},
+      {k:'STORAGE MODE',  v:(h.storage||'—').toUpperCase(),                ok:true},
+    ];
+    document.getElementById('health-rows').innerHTML=rows.map(r=>`
+      <div class="health-row">
+        <span class="health-key">◈ ${r.k}</span>
+        <span class="health-val${r.ok?'':' warn'}">${r.v}</span>
+      </div>`).join('');
+    document.getElementById('cfg-storage').value=h.db_connected?'PostgreSQL (Railway)':'JSON File';
+    document.getElementById('cfg-appid').value=h.adzuna_configured?'● CONFIGURED IN ENV':'(not set)';
+    document.getElementById('cfg-appid').disabled=true;
+    document.getElementById('cfg-appkey').value=h.adzuna_configured?'● ● ● ● ● ● ● ●':'(not set)';
+    document.getElementById('cfg-appkey').disabled=true;
+    // sidebar status
+    document.getElementById('s-adzuna').textContent=h.adzuna_configured?'ONLINE':'OFFLINE';
+    document.getElementById('s-adzuna').className='sb-status-val'+(h.adzuna_configured?'':' warn');
+    document.getElementById('s-db').textContent=h.db_connected?'POSTGRESQL':'JSON FILE';
+    document.getElementById('s-db').className='sb-status-val'+(h.db_connected?'':' warn');
+  }catch(e){
+    document.getElementById('health-rows').innerHTML='<div class="health-row"><span class="health-key">CONNECTION LOST</span><span class="health-val off">OFFLINE</span></div>';
+  }
+}
+
+async function testApi(){
+  toast('◈ TESTING ADZUNA CONNECTION...');
+  try{
+    const r=await fetch('/api/health');
+    const h=await r.json();
+    toast(h.adzuna_configured?'✓ ADZUNA API — ONLINE':'⚠ ADZUNA NOT CONFIGURED');
+  }catch(e){toast('⚠ TEST FAILED — CHECK SERVER');}
+}
+
+// ── STATUS UPDATE ──
+async function updateStatus(id,status){
+  try{
+    await fetch(`/api/jobs/${id}/status`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+    const j=allJobs.find(j=>String(j.id)===String(id));
+    if(j)j.status=status;
+    updateKPIs();
+    toast('✓ STATUS → '+status.toUpperCase());
+  }catch(e){toast('⚠ UPDATE FAILED');}
+}
+
+// ── SCAN ──
+async function runScan(){
+  toast('◈ INITIATING SCAN OPERATION...');
+  try{
+    const r=await fetch('/api/search/run',{method:'POST'});
+    const d=await r.json();
+    await refreshAll();
+    toast(`◈ SCAN COMPLETE — ${d.found||0} SIGNALS, ${d.added||0} NEW`);
+  }catch(e){toast('⚠ SCAN FAILED');}
+}
+
+// ── EXPORT CSV ──
+function exportCSV(){
+  const rows=[['Match','Title','Company','Location','Salary','Platform','Posted','Status','URL']];
+  allJobs.forEach(j=>rows.push([j.match||0,j.title||'',j.company||'',j.location||'',j.salary||'',j.platform||'',j.posted||'',j.status||'Pending',j.url||'']));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='jobradar_targets.csv';a.click();
+  toast('⊕ CSV EXPORTED');
+}
+
+// ── HELPERS ──
+function matchPill(m){return`<span class="match-pill${m>=90?' high':''}">${m}%</span>`;}
+function statusBadge(s,isLog){
+  if(isLog){const cls=s==='Success'?'success':'partial';return`<span class="badge ${cls}">${s.toUpperCase()}</span>`;}
+  const map={Pending:'pending',Applied:'applied','Interview':'interview',Rejected:'rejected'};
+  return`<span class="badge ${map[s]||'pending'}">${s.toUpperCase()}</span>`;
+}
+function statusSelect(id,status){
+  const opts=['Pending','Applied','Interview','Offer','Rejected'];
+  return`<select class="status-sel" onchange="updateStatus('${id}',this.value)">${opts.map(o=>`<option value="${o}"${status===o?' selected':''}>${o.toUpperCase()}</option>`).join('')}</select>`;
+}
+function noData(cols){return`<tr><td colspan="${cols}"><div class="empty-state" style="padding:30px"><h3>NO DATA ACQUIRED</h3></div></td></tr>`;}
+
+// ── INIT ──
+async function init(){
+  await refreshAll();
+  await loadConfig();
+  document.getElementById('loader').style.display='none';
+  setInterval(refreshAll,120000);
+}
+init();
+</script>
+</body>
+</html>
